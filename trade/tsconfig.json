@@ -1,0 +1,11 @@
+{"payout_currencies":1}	23
+09:56:40.901
+{"active_symbols":"brief"}	26
+09:56:40.924
+{"forget_all":["ticks","candles"],"req_id":4,"passthrough":{}}	62
+09:56:40.976
+{"contracts_for":"frxEURUSD"}	29
+09:56:40.984
+{"forget_all":"proposal_open_contract","req_id":5,"passthrough":{}}	67
+09:56:41.052
+{"forget_all":"proposal","req_id":6,"passthrough":{}}
