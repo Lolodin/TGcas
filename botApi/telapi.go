@@ -13,8 +13,8 @@ import (
 
 const (
 	START     = "/start"
-	GETSIG    = "/getsignal"
-	OFFSIG    = "/offsignal"
+	GETSIG    = "Включить бота"
+	OFFSIG    = "Выключить бота"
 	PAY       = "Оплата"
 	FREE      = "Бесплатно"
 	TEXTPAY   = "Выберите длительность подписки"
@@ -121,8 +121,25 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 				}
 
 				msg:=tgbotapi.NewMessage(ADMINCHAT, "Юзер добавлен в подписчики")
-				usermsg:= tgbotapi.NewMessage(int64(i), "Вам открыт доступ к сигналам для подключения введите " +GETSIG)
+				usermsg:= tgbotapi.NewMessage(int64(i), "Вам открыт доступ к сигналам для подключения включите бота в меню кнопкой `" +GETSIG+"`")
 				bot.Send(msg)
+				menu:= tgbotapi.ReplyKeyboardMarkup{}
+				button1:= tgbotapi.KeyboardButton{}
+
+				var row2 []tgbotapi.KeyboardButton
+				button1.Text = "Включить бота"
+				row2 = append(row2,button1)
+				button1.Text = "Выключить бота"
+				row2 = append(row2,button1)
+				menu.Keyboard = append(menu.Keyboard, row2)
+				menu.ResizeKeyboard = true
+				menu.Selective = false
+
+
+
+
+
+				usermsg.ReplyMarkup = menu
 				bot.Send(usermsg)
 			} else {
 				userID := arr[0]
@@ -171,7 +188,14 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 			row = append(row,button1)
 			button1.Text = "Контакты"
 			row = append(row,button1)
+			var row2 []tgbotapi.KeyboardButton
+			button1.Text = "Включить бота"
+			row2 = append(row2,button1)
+			button1.Text = "Выключить бота"
+			row2 = append(row2,button1)
+
 			menu.Keyboard = append(menu.Keyboard, row)
+			menu.Keyboard = append(menu.Keyboard, row2)
 			menu.ResizeKeyboard = true
 			menu.Selective = false
 
@@ -181,6 +205,14 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 
 			msg.ReplyMarkup = menu
 			bot.Send(msg)
+
+
+
+
+
+
+
+
 		case "Контакты":
 			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "По всем вопросам пишите @Buffettadmin")
 			bot.Send(msg)
@@ -211,7 +243,25 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 				bot.Send(msg)
 				continue
 			}
-			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "Подключаем к сигналам, для остановки сигналов введите "+OFFSIG)
+			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "Подключаем к сигналам, для остановки сигналов выберите в меню кнопку `"+OFFSIG+"`")
+			menu:= tgbotapi.ReplyKeyboardMarkup{}
+			button1:= tgbotapi.KeyboardButton{}
+
+			var row2 []tgbotapi.KeyboardButton
+			button1.Text = "Включить бота"
+			row2 = append(row2,button1)
+			button1.Text = "Выключить бота"
+			row2 = append(row2,button1)
+			menu.Keyboard = append(menu.Keyboard, row2)
+			menu.ResizeKeyboard = true
+			menu.Selective = false
+
+
+
+
+
+			msg.ReplyMarkup = menu
+
 			bot.Send(msg)
 
 			signal <- int(update.Message.Chat.ID)
