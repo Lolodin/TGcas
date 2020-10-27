@@ -219,12 +219,12 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 
          SignalAnalitic := NewQueue()
          PoolChat := botApi.NewPool(bot, 60)
-         StatisticCheck:= statistic{}
+         StatisticCheck:= statistic{Bot: bot}
          var sig Signal
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				go ConnectBinary(signal, stopsignal, bot, stor)
+				go ConnectBinary(signal, stopsignal,static, bot, stor)
 				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите "+ botApi.GETSIG)
 				return
 			}
