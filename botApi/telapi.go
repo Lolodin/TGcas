@@ -96,15 +96,17 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			continue
 		}
 		if update.Message.Chat.ID == ADMINCHAT {
+
 			args := update.Message.CommandArguments()
 			command:= update.Message.Command()
+			if command == GETSTATIC {
+				static <- 1
+			}
 			arr:=strings.Fields(args)
 			if len(arr)<2 {
 				continue
 			}
-			if command == GETSTATIC {
-				static <- 1
-			}
+
 			if command == "yes" {
 				userID := arr[0]
 				timeM  := arr[1]
