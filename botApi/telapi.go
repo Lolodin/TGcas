@@ -20,6 +20,7 @@ const (
 	TEXTPAY   = "Выберите длительность подписки"
 	ADMINCHAT = -377657292
 	GETLINK   = "GetLink"
+	GETSTATIC   = "/getStatic"
 	PATTERN   = `^\w+@\w+\.\w+$`
 )
 type Signal struct {
@@ -28,7 +29,7 @@ type Signal struct {
 
 
 
-func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
+func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -267,6 +268,8 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 			signal <- int(update.Message.Chat.ID)
 		case OFFSIG:
 		stopsignal <-int(update.Message.Chat.ID)
+		case GETSTATIC:
+			static <- 1
 		case PAY:
 			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, TEXTPAY)
 			numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(

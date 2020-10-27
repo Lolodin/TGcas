@@ -17,7 +17,7 @@ func main() {
 		fmt.Println(err)
 	}
 	s:= store.NewStore(db)
-	signalchan, stopsignal := make(chan int, 1), make(chan int, 1) //id chat
+	signalchan, stopsignal, static := make(chan int, 1), make(chan int, 1), make(chan int, 1) //id chat
 	bot, err := tgbotapi.NewBotAPI(token)
 
 	if err != nil {
@@ -25,6 +25,6 @@ func main() {
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	go trade.ConnectBinary(signalchan, stopsignal, bot, &s)
-	botApi.RunBot(signalchan, stopsignal, bot, &s)
+	go trade.ConnectBinary(signalchan, stopsignal, static, bot, &s)
+	botApi.RunBot(signalchan, stopsignal,static, bot, &s)
 }

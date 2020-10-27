@@ -165,7 +165,7 @@ func (s *Signal) SendResult(result bool, Quote float32, p *botApi.PoolChats) {
 }
 
 const swconn =  "wss://blue.binaryws.com/websockets/v3?app_id=1&l=EN"
-func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
+func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 	c, _, err := websocket.DefaultDialer.Dial(swconn, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -219,6 +219,7 @@ func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *stor
 
          SignalAnalitic := NewQueue()
          PoolChat := botApi.NewPool(bot, 60)
+         StatisticCheck:= statistic{}
          var sig Signal
 		for {
 			_, message, err := c.ReadMessage()
@@ -253,10 +254,13 @@ func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *stor
 						switch {
 						case Quote>sig.Price && sig.Rise:
 							text = "Отработал"
+							StatisticCheck.GoodAdd()
 						case Quote<sig.Price && !sig.Rise:
 							text = "Отработал"
+							StatisticCheck.GoodAdd()
 						default:
 							text = "Не отработал"
+							StatisticCheck.WrongAdd()
 
 						}
 						msg := "Сигнал " + text + ". Цена:" +f[:7]
@@ -304,6 +308,8 @@ func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *stor
 				PoolChat.OffChat(idchat)
 				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
 				bot.Send(msg)
+			case <-static:
+				StatisticCheck.GetStatistic()
 
 
 			default:
