@@ -7,7 +7,6 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/websocket"
-	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -224,7 +223,8 @@ func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *stor
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				log.Println("read:", err)
+				go ConnectBinary(signal, stopsignal, bot, stor)
+				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите "+ botApi.GETSIG)
 				return
 			}
 
@@ -302,7 +302,7 @@ func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *stor
 			case idchat := <- stopsignal:
 				fmt.Println(idchat, "STOPSIGNAL")
 				PoolChat.OffChat(idchat)
-				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите" + botApi.GETSIG)
+				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
 				bot.Send(msg)
 
 

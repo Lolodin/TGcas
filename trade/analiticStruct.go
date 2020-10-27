@@ -2,12 +2,12 @@ package trade
 
 type analystQueue struct {
 	Count int
-	Queue [180]float64
+	Queue [120]float64
 }
 
 // Добавить элемент в очередь
 func(q *analystQueue) Add(element float64) {
-if q.Count<=179 {
+if q.Count<=119 {
 	q.Queue[q.Count] = element
 	q.Count++
 	return
@@ -28,7 +28,7 @@ func NewQueue() *analystQueue {
 //true == rise
 func (q *analystQueue) GetSolving() bool {
 	 max, min  := q.Queue[0], q.Queue[0]
-	 lastElem  := q.Queue[179]
+	 lastElem  := q.Queue[119]
 	for _, v := range q.Queue {
 		if v<min {
 			min = v
