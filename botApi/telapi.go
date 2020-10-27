@@ -102,6 +102,9 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			if len(arr)<2 {
 				continue
 			}
+			if command == GETSTATIC {
+				static <- 1
+			}
 			if command == "yes" {
 				userID := arr[0]
 				timeM  := arr[1]
@@ -268,8 +271,7 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			signal <- int(update.Message.Chat.ID)
 		case OFFSIG:
 		stopsignal <-int(update.Message.Chat.ID)
-		case GETSTATIC:
-			static <- 1
+
 		case PAY:
 			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, TEXTPAY)
 			numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
