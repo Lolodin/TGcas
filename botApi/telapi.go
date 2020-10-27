@@ -187,7 +187,13 @@ func RunBot(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL
 
 		case GETSIG:
 			user := update.Message.From.ID
-			u, _ :=stor.GetUserByID(user)
+			u, err :=stor.GetUserByID(user)
+			if err != nil {
+				fmt.Println(err)
+				msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "У вас нет доступа к сигналам")
+				bot.Send(msg)
+				continue
+			}
 			arr:=strings.Split(u.Subscription, "-")
 			var sdate []int
 			sdate = make([]int, 3,3)
