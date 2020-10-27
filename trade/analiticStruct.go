@@ -40,9 +40,9 @@ func (q *analystQueue) GetSolving() bool {
 	difrentMax := max - lastElem
 	difrentMin := lastElem - min
 	if difrentMax > difrentMin{
-		return true
+		return false
 	}
-	return false
+	return true
 
 
 	
