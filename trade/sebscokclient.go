@@ -1,12 +1,13 @@
 package trade
 
 import (
+	"TelegrammBOTOPTIONS/botApi"
+	"TelegrammBOTOPTIONS/store"
 	"encoding/json"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/websocket"
 	"log"
-	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 var GMT, _ = time.LoadLocation("Africa/Abidjan")
 const TIMETICK = 60
-var Signals = NewSignalsPool()
+
 
 type SignalsPool struct {
 	Signals map[int64]Signal
@@ -85,24 +86,21 @@ type Tick struct {
 type Signal struct {
 	TimeStart int64
 	TimeEnd int64
-	IdChat int64
-	IdUser int
 	Price float32
 	Rise bool
 	Text string
 }
-func NewSignal(timeStart, idChat int64, rise bool, userID int, Price float32) Signal {
+func NewSignal(timeStart int64, rise bool, Price float32) Signal {
 	s:= Signal{}
-	s.IdChat = idChat
-	s.IdUser = userID
+
 	s.Rise = rise
 	s.TimeStart = timeStart+TIMETICK
 	s.TimeEnd = timeStart+TIMETICK+TIMETICK
 	s.Price = Price
 	if s.Rise {
-		s.Text = "Рост"
+		s.Text = "ВВЕРХ"
 	} else {
-		s.Text = "Падение"
+		s.Text = "ВНИЗ"
 	}
 	return s
 }
@@ -141,7 +139,7 @@ func(s *SignalsPool) CheckSignalEnd(TimeEnd int64, Quote float32) (bool, Signal)
 	}
 	return false, Signal{}
 }
-func(s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, bot *tgbotapi.BotAPI) {
+func(s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, p *botApi.PoolChats) {
 
 	if sig, ok := s.StartSignals[TimeStart]; ok {
 		s.m.Lock()
@@ -150,12 +148,12 @@ func(s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, bot *tgbot
 		s.Signals[sig.TimeEnd] = sig
 		s.m.Unlock()
 		 f:=strconv.FormatFloat(float64(Quote), 'G', -1, 64 )
-		msg := tgbotapi.NewMessage(sig.IdChat, "Старт сигнала, цена: "+f )
-		bot.Send(msg)
+		text :="Старт сигнала, цена: "+ f
+		p.SendMessage(text)
 	}
 
 }
-func (s *Signal) SendResult(bot *tgbotapi.BotAPI, result bool, Quote float32) {
+func (s *Signal) SendResult(result bool, Quote float32, p *botApi.PoolChats) {
 	f:=strconv.FormatFloat(float64(Quote), 'G', -1, 64 )
 	text := ""
 	if result {
@@ -163,12 +161,12 @@ func (s *Signal) SendResult(bot *tgbotapi.BotAPI, result bool, Quote float32) {
 	} else {
 		text = "Сигнал не отработал " +f
 	}
-	msg := tgbotapi.NewMessage(s.IdChat,text)
-	bot.Send(msg)
+	p.SendMessage(text)
+
 }
 
 const swconn =  "wss://blue.binaryws.com/websockets/v3?app_id=1&l=EN"
-func ConnectBinary(signal chan int, bot *tgbotapi.BotAPI) {
+func ConnectBinary(signal, stopsignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 	c, _, err := websocket.DefaultDialer.Dial(swconn, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -220,7 +218,9 @@ func ConnectBinary(signal chan int, bot *tgbotapi.BotAPI) {
 		 c.WriteMessage(1,r19)
 		 c.WriteMessage(1,r20)
 
-
+         SignalAnalitic := NewQueue()
+         PoolChat := botApi.NewPool(bot, 60)
+         var sig Signal
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
@@ -233,53 +233,89 @@ func ConnectBinary(signal chan int, bot *tgbotapi.BotAPI) {
 			if resp.Tick.Epoch == 0 {
 				continue
 			}
-			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch)
-			Signals.CheckSignalStart(resp.Tick.Epoch,resp.Tick.Quote, bot)
-			if s, sig:=Signals.CheckSignalEnd(resp.Tick.Epoch,resp.Tick.Quote); s {
-				sig.SendResult(bot, true, resp.Tick.Quote)
-			} else if !s && sig.IdChat!=0 {
-				sig.SendResult(bot, false, resp.Tick.Quote)
+			SignalAnalitic.Add(float64(resp.Tick.Quote))
+			if sig.TimeStart != 0 || sig.TimeEnd != 0 {
+				if sig.TimeStart <= resp.Tick.Epoch {
+					if sig.TimeStart != 0 {
+						sig.Price = resp.Tick.Quote
+						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+						text :="Старт сигнала, цена:"+f[:7]
+						PoolChat.SendMessage(text)
+						sig.TimeStart = 0
+					}
+
+				}
+				if sig.TimeEnd <= resp.Tick.Epoch {
+					if  sig.TimeEnd != 0{
+						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+						Quote := resp.Tick.Quote
+						text := ""
+						switch {
+						case Quote>sig.Price && sig.Rise:
+							text = "Отработал"
+						case Quote<sig.Price && !sig.Rise:
+							text = "Отработал"
+						default:
+							text = "Не отработал"
+
+						}
+						msg := "Сигнал " + text + ". Цена:" +f[:7]
+						PoolChat.SendMessage(msg)
+						sig = Signal{}
+					}
+
+				}
 			}
+
+
+			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch, PoolChat, sig)
 			select {
 			case idchat := <- signal:
-
+				msg:= tgbotapi.NewMessage(int64(idchat), "Вы подписались на сигналы, таймфрейм 1М")
+				bot.Send(msg)
+				PoolChat.AddChat(idchat)
+			case  <-PoolChat.Signal:
+				fmt.Println("TIMER")
 				t:=time.Now().In(GMT)
 				t = t.Round(1*time.Minute)
-				rand.Seed(resp.Tick.Epoch)
-				r:= rand.Float32()
-				var result bool
-				if r<0.5 {
-					result = false
-				} else {
-					result = true
-				}
+				if sig.TimeEnd == 0 {
+					var result bool
+					// Вставляем сигнал
+					result = SignalAnalitic.GetSolving()
 
-				s := NewSignal(t.Unix(), int64(idchat),result,0, resp.Tick.Quote)
+					sig = NewSignal(t.Unix(), result,resp.Tick.Quote)
 
-				if ok:=Signals.AddNewSignal(s); !ok {
-
-					continue
-				}
-				t2:= time.Unix(s.TimeStart, 0).In(GMT)
-				fmt.Println(t2, s)
-				hour, minute, _:= t2.Clock()
-				h:=strconv.Itoa(hour)
-				if len(h)<2{
-					h = "0"+h
-				}
+					t2:= time.Unix(sig.TimeStart, 0).In(GMT)
+					fmt.Println(t2, sig)
+					hour, minute, _:= t2.Clock()
+					h:=strconv.Itoa(hour)
+					if len(h)<2{
+						h = "0"+h
+					}
 					m:=strconv.Itoa(minute)
-				if len(m)<2 {
-					m = "0"+m
+					if len(m)<2 {
+						m = "0"+m
+					}
+					text := "EUR/USD/" + sig.Text + "/" +h+":"+m+"GMT"
+					PoolChat.SendMessage(text)
 				}
-					text := "Поставьте на " + s.Text + " в " +h+":"+m+"GMT"
-				msg:= tgbotapi.NewMessage(s.IdChat,text)
-
+			case idchat := <- stopsignal:
+				fmt.Println(idchat, "STOPSIGNAL")
+				PoolChat.OffChat(idchat)
+				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите" + botApi.GETSIG)
 				bot.Send(msg)
+
+
 			default:
 
 				continue
 			}
+
+
+
+
 		}
+
 
 	}()
 

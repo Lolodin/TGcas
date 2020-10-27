@@ -2,21 +2,29 @@ package main
 
 import (
 	"TelegrammBOTOPTIONS/botApi"
+	"TelegrammBOTOPTIONS/store"
 	"TelegrammBOTOPTIONS/trade"
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 )
-var token string= "1122545961:AAGfVwD0Sowfqd_ICaBJG3n2CSSjBp1qs6o"
+var token string= "1182001992:AAH-vLkXe7lSkktAqFiY4mZjh2oVb2cSm0A"
 func main() {
 	fmt.Println("BOT RUN")
-	signalchan := make(chan int, 1) //id chat
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		fmt.Println(err)
+	}
+	s:= store.NewStore(db)
+	signalchan, stopsignal := make(chan int, 1), make(chan int, 1) //id chat
 	bot, err := tgbotapi.NewBotAPI(token)
+
 	if err != nil {
 		log.Fatal("error run bot")
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	go trade.ConnectBinary(signalchan, bot)
-	botApi.RunBot(signalchan, bot)
+	go trade.ConnectBinary(signalchan, stopsignal, bot, &s)
+	botApi.RunBot(signalchan, stopsignal, bot, &s)
 }
