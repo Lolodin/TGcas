@@ -20,7 +20,7 @@ const (
 	TEXTPAY   = "Выберите длительность подписки"
 	ADMINCHAT = -377657292
 	GETLINK   = "GetLink"
-	GETSTATIC   = "/getStatic"
+	GETSTATIC   = "getStatic"
 	PATTERN   = `^\w+@\w+\.\w+$`
 )
 type Signal struct {
