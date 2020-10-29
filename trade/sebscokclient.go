@@ -264,6 +264,11 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 
 						}
 						msg := "Сигнал " + text + ". Цена:" +f[:7]
+						checkTime := time.Now().Hour()
+						if checkTime<10 || checkTime>22 {
+							PoolChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
+							continue
+						}
 						PoolChat.SendMessage(msg)
 						sig = Signal{}
 					}
