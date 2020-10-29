@@ -43,3 +43,12 @@ func TestStore_DeleteUser(t *testing.T) {
 	 }
 
 }
+func TestMySQL_GetUserList(t *testing.T) {
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		t.Error(err)
+	}
+	s:= NewStore(db)
+	u :=s.GetUserList()
+	fmt.Println(u)
+}

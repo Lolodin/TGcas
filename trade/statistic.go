@@ -15,7 +15,7 @@ type statistic struct {
 func(s *statistic) GetStatistic() {
 	global:= float64(s.Up+s.Down)
 	s.Winrate = (float64(s.Up)/global)*100
-  str:=fmt.Sprint("Верно: ", s.Up, " Ошибок: ",s.Down, " Винрейт", s.Winrate)
+  str:=fmt.Sprint("Верно: ", s.Up, " Ошибок: ",s.Down, " Винрейт ", s.Winrate)
   msg := tgbotapi.NewMessage(botApi.ADMINCHAT, str)
   s.Bot.Send(msg)
 }

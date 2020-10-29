@@ -21,6 +21,7 @@ const (
 	ADMINCHAT = -377657292
 	GETLINK   = "GetLink"
 	GETSTATIC   = "getStatic"
+	SEND		= "sendall"
 	PATTERN   = `^\w+@\w+\.\w+$`
 )
 type Signal struct {
@@ -99,6 +100,13 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 
 			args := update.Message.CommandArguments()
 			command:= update.Message.Command()
+			if command == SEND {
+				u:=stor.GetUserList()
+				for _, v := range u.List {
+					msg:=tgbotapi.NewMessage(int64(v), args)
+					bot.Send(msg)
+				}
+			}
 			if command == GETSTATIC {
 				static <- 1
 			}

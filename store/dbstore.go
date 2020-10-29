@@ -18,6 +18,17 @@ type users struct {
 	IDchat int
 
 }
+type userList struct {
+	List []int
+}
+func(u *userList) AddId(user int) {
+	u.List = append(u.List, user)
+}
+func NewUlist() userList {
+	u:= userList{}
+	u.List = make([]int, 0)
+	return u
+}
 func NewStore(db *sql.DB) MySQL {
 	return MySQL{DB: db}
 }
@@ -74,5 +85,20 @@ func(s *MySQL) AddSubscription(UserID int, timeM int) error {
 func(s *MySQL) DeleteUser(UserID int) error {
 	_, err :=s.DB.Exec("DELETE FROM tgbot.users where user_id  = ?",UserID)
 	return err
+}
+func(s *MySQL) GetUserList() *userList {
+	u := NewUlist()
+	rows, err:=s.DB.Query("select user_id FROM tgbot.users")
+	if err != nil {
+		fmt.Println(err)
+	}
+	var id int
+	for rows.Next() {
+		rows.Scan(&id)
+		u.AddId(id)
+
+
+	}
+return  &u
 }
 
