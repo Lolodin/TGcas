@@ -228,6 +228,7 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				go ConnectBinary(signal, stopsignal,static,testSignal, bot, stor)
+				fmt.Println("REBOOT")
 				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите "+ botApi.GETSIG)
 				return
 			}
@@ -235,24 +236,15 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 			resp := Resp{}
 			json.Unmarshal(message, &resp)
 			if resp.Tick.Epoch == 0 {
+				TestChat.SendMessage("Торги отключены")
+				PoolChat.SendMessage("Торги отключены")
+				TestChat.Pool = make(map[int]int, 0)
+				PoolChat.Pool = make(map[int]int, 0)
 				continue
 			}
 			SignalAnalitic.Add(float64(resp.Tick.Quote))
-			checkTime := time.Now().Hour()
-			if checkTime<10 || checkTime>=23 {
-				TestChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
-
-					TestChat.Pool = make(map[int]int, 0)
-
-			}
-			checkTime = time.Now().Hour()
-			if checkTime<10 || checkTime>=22 {
-				PoolChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
-
-					PoolChat.Pool = make(map[int]int, 0)
 
 
-			}
 			if sig.TimeStart != 0 || sig.TimeEnd != 0 {
 				if sig.TimeStart <= resp.Tick.Epoch {
 					if sig.TimeStart != 0 {

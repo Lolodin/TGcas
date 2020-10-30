@@ -237,6 +237,13 @@ func RunBot(signal, stopsignal,static, testSignal chan int, bot *tgbotapi.BotAPI
 			bot.Send(msg)
 
 		case GETSIG:
+			checkTime := time.Now().Hour()
+			if checkTime<10 || checkTime>=22 {
+				msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
+				bot.Send(msg)
+				continue
+
+			}
 			user := update.Message.From.ID
 			u, err :=stor.GetUserByID(user)
 			if err != nil {
@@ -290,8 +297,22 @@ func RunBot(signal, stopsignal,static, testSignal chan int, bot *tgbotapi.BotAPI
 
 			signal <- int(update.Message.Chat.ID)
 		case OFFSIG:
+			checkTime := time.Now().Hour()
+			if checkTime<10 || checkTime>=22 {
+				msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
+				bot.Send(msg)
+				continue
+
+			}
 		stopsignal <-int(update.Message.Chat.ID)
 		case GETTEST:
+			checkTime := time.Now().Hour()
+			if checkTime<10 || checkTime>=22 {
+				msg:=tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
+				bot.Send(msg)
+				continue
+
+			}
 			testSignal<-int(update.Message.Chat.ID)
 
 		case PAY:
