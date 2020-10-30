@@ -9,7 +9,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 )
-var token string= "1122545961:AAGfVwD0Sowfqd_ICaBJG3n2CSSjBp1qs6o"
+var token string= "1182001992:AAH-vLkXe7lSkktAqFiY4mZjh2oVb2cSm0A"
 func main() {
 	fmt.Println("BOT RUN")
 	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
