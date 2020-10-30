@@ -18,6 +18,11 @@ type users struct {
 	IDchat int
 
 }
+type tests struct {
+	UserID int
+	TimeSub int
+	TestEnd []byte
+}
 type userList struct {
 	List []int
 }
@@ -101,4 +106,35 @@ func(s *MySQL) GetUserList() *userList {
 	}
 return  &u
 }
+func(s *MySQL) GetTestUsers() []tests {
+	var usrs []tests
+	var t tests
+	rows, err:=s.DB.Query("select * FROM tgbot.tests where testEnd = 00")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for rows.Next() {
+		rows.Scan(&t.UserID, &t.TimeSub, &t.TestEnd)
+		usrs = append(usrs, t)
+	}
+	return usrs
+}
+func(s *MySQL) GetTestUser(UserID int) tests {
 
+	var t tests
+	row:=s.DB.QueryRow("select * FROM tgbot.tests where user_id = ?",UserID )
+
+		row.Scan(&t.UserID, &t.TimeSub, &t.TestEnd)
+
+
+	return t
+}
+func(s *MySQL) EndSub(userID int) {
+	_, err :=s.DB.Exec("UPDATE tgbot.tests set testEnd = ? where user_id = ?", true, userID)
+	fmt.Println(err)
+}
+func(s *MySQL) AddUserTest(userID int) {
+	t:= time.Now().Hour()
+	_, err :=s.DB.Exec("INSERT INTO tgbot.tests (user_id, testNow, testEnd) VALUES (?,?,?)",  userID, t, false)
+	fmt.Println(err)
+}

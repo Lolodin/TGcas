@@ -7,6 +7,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/websocket"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -165,7 +166,7 @@ func (s *Signal) SendResult(result bool, Quote float32, p *botApi.PoolChats) {
 }
 
 const swconn =  "wss://blue.binaryws.com/websockets/v3?app_id=1&l=EN"
-func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
+func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 	c, _, err := websocket.DefaultDialer.Dial(swconn, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -219,12 +220,14 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 
          SignalAnalitic := NewQueue()
          PoolChat := botApi.NewPool(bot, 60)
+         TestChat := botApi.NewPool(bot, 60)
          StatisticCheck:= statistic{Bot: bot}
          var sig Signal
+         var sigTest Signal
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				go ConnectBinary(signal, stopsignal,static, bot, stor)
+				go ConnectBinary(signal, stopsignal,static,testSignal, bot, stor)
 				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите "+ botApi.GETSIG)
 				return
 			}
@@ -235,6 +238,21 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 				continue
 			}
 			SignalAnalitic.Add(float64(resp.Tick.Quote))
+			checkTime := time.Now().Hour()
+			if checkTime<10 || checkTime>=23 {
+				TestChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
+
+					TestChat.Pool = make(map[int]int, 0)
+
+			}
+			checkTime = time.Now().Hour()
+			if checkTime<10 || checkTime>=22 {
+				PoolChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
+
+					PoolChat.Pool = make(map[int]int, 0)
+
+
+			}
 			if sig.TimeStart != 0 || sig.TimeEnd != 0 {
 				if sig.TimeStart <= resp.Tick.Epoch {
 					if sig.TimeStart != 0 {
@@ -264,17 +282,68 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 
 						}
 						msg := "Сигнал " + text + ". Цена:" +f[:7]
-						checkTime := time.Now().Hour()
-						if checkTime<10 || checkTime>22 {
-							PoolChat.SendMessage("Сигналы поступают с 10:00 по 22:00 по Москве. Отключите оповещения.")
-							continue
-						}
 						PoolChat.SendMessage(msg)
 						sig = Signal{}
 					}
 
 				}
 			}
+			///_______________________________________________________________________
+
+			if sigTest.TimeStart != 0 || sigTest.TimeEnd != 0 {
+				if sigTest.TimeStart <= resp.Tick.Epoch {
+					if sigTest.TimeStart != 0 {
+						sigTest.Price = resp.Tick.Quote
+						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+						text :="Старт сигнала, цена:"+f[:7]
+						TestChat.SendMessage(text)
+						sigTest.TimeStart = 0
+					}
+
+				}
+				if sigTest.TimeEnd <= resp.Tick.Epoch {
+					if  sigTest.TimeEnd != 0{
+						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+						Quote := resp.Tick.Quote
+						text := ""
+						switch {
+						case Quote>sigTest.Price && sigTest.Rise:
+							text = "Отработал"
+
+						case Quote<sigTest.Price && !sigTest.Rise:
+							text = "Отработал"
+
+						default:
+							text = "Не отработал"
+
+
+						}
+						rand.Seed(sigTest.TimeEnd)
+						r:= rand.Float64()
+						if text == "Не отработал" && r<0.9{
+							var price float32
+
+							if sigTest.Rise {
+								price = sigTest.Price+(sigTest.Price - Quote)
+							} else {
+								price = sigTest.Price-(Quote - sigTest.Price)
+							}
+							f=strconv.FormatFloat(float64(price), 'G', -1, 64 )
+							text = "Отработал"
+							msg := "Сигнал " + text + ". Цена:" +f[:7]
+							TestChat.SendMessage(msg)
+							sigTest = Signal{}
+							continue
+						}
+						f=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+						msg := "Сигнал " + text + ". Цена:" +f[:7]
+						TestChat.SendMessage(msg)
+						sigTest = Signal{}
+					}
+
+				}
+			}
+			//____________________________________________________________________
 
 
 			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch, PoolChat, sig)
@@ -293,6 +362,7 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 					result = SignalAnalitic.GetSolving()
 
 					sig = NewSignal(t.Unix(), result,resp.Tick.Quote)
+					sigTest = NewSignal(t.Unix(), result,resp.Tick.Quote)
 
 					t2:= time.Unix(sig.TimeStart, 0).In(GMT)
 					fmt.Println(t2, sig)
@@ -307,15 +377,38 @@ func ConnectBinary(signal, stopsignal, static chan int, bot *tgbotapi.BotAPI, st
 					}
 					text := "EUR/USD/" + sig.Text + "/" +h+":"+m+"GMT"
 					PoolChat.SendMessage(text)
+					TestChat.SendMessage(text)
 				}
 			case idchat := <- stopsignal:
 				fmt.Println(idchat, "STOPSIGNAL")
 				PoolChat.OffChat(idchat)
+				TestChat.OffChat(idchat)
 				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
 				bot.Send(msg)
 			case <-static:
 				StatisticCheck.GetStatistic()
-
+			case chatID:= <-testSignal:
+				user:=stor.GetTestUser(chatID)
+				if user.UserID == 0 {
+					stor.AddUserTest(chatID)
+				}
+				if len(user.TestEnd)>0 {
+					if user.TestEnd[0] ==[]byte{1}[0] {
+						msg:= tgbotapi.NewMessage(int64(chatID), "Вы уже использовали тестовый доступ")
+						bot.Send(msg)
+						continue
+					}
+				}
+				msg:= tgbotapi.NewMessage(int64(chatID), "Вы подписались на сигналы, таймфрейм 1М, используется тестовый доступ")
+				bot.Send(msg)
+				stor.EndSub(chatID)
+				go func(chatID int) {
+					time.Sleep(60*time.Minute)
+					TestChat.OffChat(chatID)
+					msg:= tgbotapi.NewMessage(int64(chatID), "Тестовый доступ закрыт, чтобы продолжить, получите полный доступ в меню бота")
+					bot.Send(msg)
+				}(chatID)
+				TestChat.AddChat(chatID)
 
 			default:
 

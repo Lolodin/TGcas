@@ -21,6 +21,7 @@ const (
 	ADMINCHAT = -377657292
 	GETLINK   = "GetLink"
 	GETSTATIC   = "getStatic"
+	GETTEST   = "Тестовый доступ"
 	SEND		= "sendall"
 	PATTERN   = `^\w+@\w+\.\w+$`
 )
@@ -30,7 +31,7 @@ type Signal struct {
 
 
 
-func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
+func RunBot(signal, stopsignal,static, testSignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -207,9 +208,13 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			row2 = append(row2,button1)
 			button1.Text = "Выключить бота"
 			row2 = append(row2,button1)
+			var row3 []tgbotapi.KeyboardButton
+			button1.Text = "Тестовый доступ"
+			row3 = append(row3,button1)
 
 			menu.Keyboard = append(menu.Keyboard, row)
 			menu.Keyboard = append(menu.Keyboard, row2)
+			menu.Keyboard = append(menu.Keyboard, row3)
 			menu.ResizeKeyboard = true
 			menu.Selective = false
 
@@ -266,7 +271,12 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			row2 = append(row2,button1)
 			button1.Text = "Выключить бота"
 			row2 = append(row2,button1)
+
+			var row3 []tgbotapi.KeyboardButton
+			button1.Text = "Тестовый доступ"
+			row3 = append(row3,button1)
 			menu.Keyboard = append(menu.Keyboard, row2)
+			menu.Keyboard = append(menu.Keyboard, row3)
 			menu.ResizeKeyboard = true
 			menu.Selective = false
 
@@ -281,6 +291,8 @@ func RunBot(signal, stopsignal,static chan int, bot *tgbotapi.BotAPI, stor *stor
 			signal <- int(update.Message.Chat.ID)
 		case OFFSIG:
 		stopsignal <-int(update.Message.Chat.ID)
+		case GETTEST:
+			testSignal<-int(update.Message.Chat.ID)
 
 		case PAY:
 			msg:=tgbotapi.NewMessage(update.Message.Chat.ID, TEXTPAY)

@@ -52,3 +52,38 @@ func TestMySQL_GetUserList(t *testing.T) {
 	u :=s.GetUserList()
 	fmt.Println(u)
 }
+func TestMySQL_AddUserTest(t *testing.T) {
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		t.Error(err)
+	}
+	s:= NewStore(db)
+	s.AddUserTest(119596916)
+}
+func TestMySQL_EndSub(t *testing.T) {
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		t.Error(err)
+	}
+	s:= NewStore(db)
+	s.EndSub(119596916)
+}
+func TestMySQL_GetTestUsers(t *testing.T) {
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		t.Error(err)
+	}
+	s:= NewStore(db)
+	sl:=s.GetTestUsers()
+	fmt.Println(sl)
+}
+func TestMySQL_GetTestUser(t *testing.T) {
+	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
+	if err != nil {
+		t.Error(err)
+	}
+	s:= NewStore(db)
+	sl:=s.GetTestUser(119596916)
+	fmt.Println(sl)
+	fmt.Println(sl.TestEnd[0] == []byte{0}[0])
+}

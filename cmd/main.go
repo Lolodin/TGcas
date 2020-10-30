@@ -9,7 +9,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 )
-var token string= "1182001992:AAH-vLkXe7lSkktAqFiY4mZjh2oVb2cSm0A"
+var token string= "1122545961:AAGfVwD0Sowfqd_ICaBJG3n2CSSjBp1qs6o"
 func main() {
 	fmt.Println("BOT RUN")
 	db, err:=sql.Open("mysql", "root:root@tcp(localhost:3308)/tgbot")
@@ -17,7 +17,7 @@ func main() {
 		fmt.Println(err)
 	}
 	s:= store.NewStore(db)
-	signalchan, stopsignal, static := make(chan int, 1), make(chan int, 1), make(chan int, 1) //id chat
+	signalchan, stopsignal, static, testSignal := make(chan int, 1), make(chan int, 1), make(chan int, 1),  make(chan int, 1) //id chat
 	bot, err := tgbotapi.NewBotAPI(token)
 
 	if err != nil {
@@ -25,6 +25,6 @@ func main() {
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	go trade.ConnectBinary(signalchan, stopsignal, static, bot, &s)
-	botApi.RunBot(signalchan, stopsignal,static, bot, &s)
+	go trade.ConnectBinary(signalchan, stopsignal, static, testSignal, bot, &s)
+	botApi.RunBot(signalchan, stopsignal,static,testSignal, bot, &s)
 }
