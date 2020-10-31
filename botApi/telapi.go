@@ -128,6 +128,19 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 
 			}
 			if command == GETSTATIC {
+				checkTime := time.Now().Hour()
+				day := time.Now().Weekday()
+				if day == time.Saturday || day == time.Sunday {
+					msg := tgbotapi.NewMessage(ADMINCHAT, "НЕ ТРОГАЙ БЛЯТЬ!")
+					bot.Send(msg)
+					continue
+				}
+				if checkTime <= 10 || checkTime >= 22 {
+					msg := tgbotapi.NewMessage(ADMINCHAT, "СУКА НЕ ТРОГАЙ БЛЯТЬ!")
+					bot.Send(msg)
+					continue
+
+				}
 				static <- 1
 			}
 			arr := strings.Fields(args)
