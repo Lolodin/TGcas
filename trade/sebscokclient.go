@@ -230,12 +230,6 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				day := time.Now().Weekday()
-				if day == time.Saturday || day == time.Sunday {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
-					bot.Send(msg)
-					continue READCHAN
-				}
 				go ConnectBinary(signal, stopsignal, static, testSignal, bot, stor)
 				fmt.Println("REBOOT")
 				PoolChat.Lock()
@@ -342,7 +336,7 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 				}
 			}
 			//____________________________________________________________________
-READCHAN:
+
 			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch, PoolChat, sig)
 			select {
 			case idchat := <-signal:
