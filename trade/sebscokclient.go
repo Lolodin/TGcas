@@ -240,7 +240,7 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 				PoolChat.SendMessage("Торги отключены")
 				TestChat.Pool = make(map[int]int, 0)
 				PoolChat.Pool = make(map[int]int, 0)
-				continue
+
 			}
 			SignalAnalitic.Add(float64(resp.Tick.Quote))
 
