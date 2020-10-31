@@ -243,6 +243,73 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 
 			}
 			SignalAnalitic.Add(float64(resp.Tick.Quote))
+			select {
+			case idchat := <- signal:
+				msg:= tgbotapi.NewMessage(int64(idchat), "Вы подписались на сигналы, таймфрейм 1М")
+				bot.Send(msg)
+				PoolChat.AddChat(idchat)
+			case  <-PoolChat.Signal:
+				fmt.Println("TIMER")
+				t:=time.Now().In(GMT)
+				t = t.Round(1*time.Minute)
+				if sig.TimeEnd == 0 {
+					var result bool
+					// Вставляем сигнал
+					result = SignalAnalitic.GetSolving()
+
+					sig = NewSignal(t.Unix(), result,resp.Tick.Quote)
+					sigTest = NewSignal(t.Unix(), result,resp.Tick.Quote)
+
+					t2:= time.Unix(sig.TimeStart, 0).In(GMT)
+					fmt.Println(t2, sig)
+					hour, minute, _:= t2.Clock()
+					h:=strconv.Itoa(hour)
+					if len(h)<2{
+						h = "0"+h
+					}
+					m:=strconv.Itoa(minute)
+					if len(m)<2 {
+						m = "0"+m
+					}
+					text := "EUR/USD/" + sig.Text + "/" +h+":"+m+"GMT"
+					PoolChat.SendMessage(text)
+					TestChat.SendMessage(text)
+				}
+			case idchat := <- stopsignal:
+				fmt.Println(idchat, "STOPSIGNAL")
+				PoolChat.OffChat(idchat)
+				TestChat.OffChat(idchat)
+				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
+				bot.Send(msg)
+			case <-static:
+				StatisticCheck.GetStatistic()
+			case chatID:= <-testSignal:
+				user:=stor.GetTestUser(chatID)
+				if user.UserID == 0 {
+					stor.AddUserTest(chatID)
+				}
+				if len(user.TestEnd)>0 {
+					if user.TestEnd[0] ==[]byte{1}[0] {
+						msg:= tgbotapi.NewMessage(int64(chatID), "Вы уже использовали тестовый доступ")
+						bot.Send(msg)
+						continue
+					}
+				}
+				msg:= tgbotapi.NewMessage(int64(chatID), "Вы подписались на сигналы, таймфрейм 1М, используется тестовый доступ")
+				bot.Send(msg)
+				stor.EndSub(chatID)
+				go func(chatID int) {
+					time.Sleep(60*time.Minute)
+					TestChat.OffChat(chatID)
+					msg:= tgbotapi.NewMessage(int64(chatID), "Тестовый доступ закрыт, чтобы продолжить, получите полный доступ в меню бота")
+					bot.Send(msg)
+				}(chatID)
+				TestChat.AddChat(chatID)
+
+			default:
+
+				continue
+			}
 
 
 			if sig.TimeStart != 0 || sig.TimeEnd != 0 {
@@ -339,73 +406,7 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 
 
 			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch, PoolChat, sig)
-			select {
-			case idchat := <- signal:
-				msg:= tgbotapi.NewMessage(int64(idchat), "Вы подписались на сигналы, таймфрейм 1М")
-				bot.Send(msg)
-				PoolChat.AddChat(idchat)
-			case  <-PoolChat.Signal:
-				fmt.Println("TIMER")
-				t:=time.Now().In(GMT)
-				t = t.Round(1*time.Minute)
-				if sig.TimeEnd == 0 {
-					var result bool
-					// Вставляем сигнал
-					result = SignalAnalitic.GetSolving()
 
-					sig = NewSignal(t.Unix(), result,resp.Tick.Quote)
-					sigTest = NewSignal(t.Unix(), result,resp.Tick.Quote)
-
-					t2:= time.Unix(sig.TimeStart, 0).In(GMT)
-					fmt.Println(t2, sig)
-					hour, minute, _:= t2.Clock()
-					h:=strconv.Itoa(hour)
-					if len(h)<2{
-						h = "0"+h
-					}
-					m:=strconv.Itoa(minute)
-					if len(m)<2 {
-						m = "0"+m
-					}
-					text := "EUR/USD/" + sig.Text + "/" +h+":"+m+"GMT"
-					PoolChat.SendMessage(text)
-					TestChat.SendMessage(text)
-				}
-			case idchat := <- stopsignal:
-				fmt.Println(idchat, "STOPSIGNAL")
-				PoolChat.OffChat(idchat)
-				TestChat.OffChat(idchat)
-				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
-				bot.Send(msg)
-			case <-static:
-				StatisticCheck.GetStatistic()
-			case chatID:= <-testSignal:
-				user:=stor.GetTestUser(chatID)
-				if user.UserID == 0 {
-					stor.AddUserTest(chatID)
-				}
-				if len(user.TestEnd)>0 {
-					if user.TestEnd[0] ==[]byte{1}[0] {
-						msg:= tgbotapi.NewMessage(int64(chatID), "Вы уже использовали тестовый доступ")
-						bot.Send(msg)
-						continue
-					}
-				}
-				msg:= tgbotapi.NewMessage(int64(chatID), "Вы подписались на сигналы, таймфрейм 1М, используется тестовый доступ")
-				bot.Send(msg)
-				stor.EndSub(chatID)
-				go func(chatID int) {
-					time.Sleep(60*time.Minute)
-					TestChat.OffChat(chatID)
-					msg:= tgbotapi.NewMessage(int64(chatID), "Тестовый доступ закрыт, чтобы продолжить, получите полный доступ в меню бота")
-					bot.Send(msg)
-				}(chatID)
-				TestChat.AddChat(chatID)
-
-			default:
-
-				continue
-			}
 
 
 
