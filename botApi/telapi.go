@@ -236,13 +236,8 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 
 		case GETSIG:
 			checkTime := time.Now().Hour()
-			day := time.Now().Weekday()
-			if day == time.Saturday || day == time.Sunday {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
-				bot.Send(msg)
-				continue
-			}
-			if checkTime <= 10 || checkTime >= 22 {
+
+			if checkTime <= 10 || checkTime >= 23 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
@@ -298,13 +293,9 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 			signal <- int(update.Message.Chat.ID)
 		case OFFSIG:
 			checkTime := time.Now().Hour()
-			day := time.Now().Weekday()
-			if day == time.Saturday || day == time.Sunday {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
-				bot.Send(msg)
-				continue
-			}
-			if checkTime <= 10 || checkTime >= 22 {
+
+
+			if checkTime <= 10 || checkTime >= 23 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
@@ -313,13 +304,9 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 			stopsignal <- int(update.Message.Chat.ID)
 		case GETTEST:
 			checkTime := time.Now().Hour()
-			day := time.Now().Weekday()
-			if day == time.Saturday || day == time.Sunday {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
-				bot.Send(msg)
-				continue
-			}
-			if checkTime <= 10 || checkTime >= 22 {
+
+
+			if checkTime <= 10 || checkTime >= 23 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
