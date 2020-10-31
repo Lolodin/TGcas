@@ -14,14 +14,15 @@ import (
 )
 
 var GMT, _ = time.LoadLocation("Africa/Abidjan")
+
 const TIMETICK = 60
 
-
 type SignalsPool struct {
-	Signals map[int64]Signal
+	Signals      map[int64]Signal
 	StartSignals map[int64]Signal
-	m sync.Mutex
+	m            sync.Mutex
 }
+
 //REQUST GROUP
 type reqid struct {
 	Req int `json:"req_id"`
@@ -55,7 +56,6 @@ type req4 struct {
 	Passthrough
 	forgetall
 	reqid
-
 }
 type req5 struct {
 	Forgetall string `json:"forget_all"`
@@ -77,25 +77,26 @@ type Resp struct {
 	Tick Tick `json:"tick"`
 }
 type Tick struct {
-	Ask float32 `json:"ask"` // 8462.93
-	Bid float32 `json:"bid"` // 8460.93
-	Epoch int64 `json:"epoch"` //1601199397
-	Quote float32 `json:"quote"`// 8461.93
+	Ask   float32 `json:"ask"`   // 8462.93
+	Bid   float32 `json:"bid"`   // 8460.93
+	Epoch int64   `json:"epoch"` //1601199397
+	Quote float32 `json:"quote"` // 8461.93
 
 }
 type Signal struct {
 	TimeStart int64
-	TimeEnd int64
-	Price float32
-	Rise bool
-	Text string
+	TimeEnd   int64
+	Price     float32
+	Rise      bool
+	Text      string
 }
+
 func NewSignal(timeStart int64, rise bool, Price float32) Signal {
-	s:= Signal{}
+	s := Signal{}
 
 	s.Rise = rise
-	s.TimeStart = timeStart+TIMETICK
-	s.TimeEnd = timeStart+TIMETICK+TIMETICK
+	s.TimeStart = timeStart + TIMETICK
+	s.TimeEnd = timeStart + TIMETICK + TIMETICK
 	s.Price = Price
 	if s.Rise {
 		s.Text = "ВВЕРХ"
@@ -105,13 +106,13 @@ func NewSignal(timeStart int64, rise bool, Price float32) Signal {
 	return s
 }
 func NewSignalsPool() SignalsPool {
-	s:= SignalsPool{}
-	s.Signals =make(map[int64]Signal, 10)
-	s.StartSignals =make(map[int64]Signal, 10)
+	s := SignalsPool{}
+	s.Signals = make(map[int64]Signal, 10)
+	s.StartSignals = make(map[int64]Signal, 10)
 	return s
 }
-func(s *SignalsPool) AddNewSignal(si Signal) bool {
-	if _, ok:=s.StartSignals[si.TimeStart]; !ok {
+func (s *SignalsPool) AddNewSignal(si Signal) bool {
+	if _, ok := s.StartSignals[si.TimeStart]; !ok {
 		s.m.Lock()
 		s.StartSignals[si.TimeStart] = si
 		s.m.Unlock()
@@ -119,17 +120,18 @@ func(s *SignalsPool) AddNewSignal(si Signal) bool {
 	}
 	return false
 }
+
 //true если сигнал отработал
-func(s *SignalsPool) CheckSignalEnd(TimeEnd int64, Quote float32) (bool, Signal) {
+func (s *SignalsPool) CheckSignalEnd(TimeEnd int64, Quote float32) (bool, Signal) {
 
 	if sig, ok := s.Signals[TimeEnd]; ok {
 		s.m.Lock()
 		delete(s.Signals, TimeEnd)
 		s.m.Unlock()
 		switch {
-		case Quote>sig.Price && sig.Rise:
-			return  true, sig
-		case Quote<sig.Price && !sig.Rise:
+		case Quote > sig.Price && sig.Rise:
+			return true, sig
+		case Quote < sig.Price && !sig.Rise:
 			return true, sig
 		default:
 			return false, sig
@@ -139,7 +141,7 @@ func(s *SignalsPool) CheckSignalEnd(TimeEnd int64, Quote float32) (bool, Signal)
 	}
 	return false, Signal{}
 }
-func(s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, p *botApi.PoolChats) {
+func (s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, p *botApi.PoolChats) {
 
 	if sig, ok := s.StartSignals[TimeStart]; ok {
 		s.m.Lock()
@@ -147,192 +149,124 @@ func(s *SignalsPool) CheckSignalStart(TimeStart int64, Quote float32, p *botApi.
 		sig.Price = Quote
 		s.Signals[sig.TimeEnd] = sig
 		s.m.Unlock()
-		 f:=strconv.FormatFloat(float64(Quote), 'G', -1, 64 )
-		text :="Старт сигнала, цена: "+ f
+		f := strconv.FormatFloat(float64(Quote), 'G', -1, 64)
+		text := "Старт сигнала, цена: " + f
 		p.SendMessage(text)
 	}
 
 }
 func (s *Signal) SendResult(result bool, Quote float32, p *botApi.PoolChats) {
-	f:=strconv.FormatFloat(float64(Quote), 'G', -1, 64 )
+	f := strconv.FormatFloat(float64(Quote), 'G', -1, 64)
 	text := ""
 	if result {
-		text = "Сигнал отработал " +f
+		text = "Сигнал отработал " + f
 	} else {
-		text = "Сигнал не отработал " +f
+		text = "Сигнал не отработал " + f
 	}
 	p.SendMessage(text)
 
 }
 
-const swconn =  "wss://blue.binaryws.com/websockets/v3?app_id=1&l=EN"
+const swconn = "wss://blue.binaryws.com/websockets/v3?app_id=1&l=EN"
+
 func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAPI, stor *store.MySQL) {
 	c, _, err := websocket.DefaultDialer.Dial(swconn, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
-	 func() {
-		 r1:=[]byte(`{"authorize":"a1-aIfqSYsjkdq1NNbg2DzSfwjLLMoNk","req_id":1,"passthrough":{}}`)
-		 r2:=[]byte(`{"website_status":1,"subscribe":1,"req_id":2,"passthrough":{}}`)
-		 r3:=[]byte(`{"time":1,"req_id":3,"passthrough":{}}`)
-		 r4:=[]byte(`{"balance":1,"subscribe":1,"req_id":4,"passthrough":{}}`)
-		 r5:=[]byte(`{"get_settings":1,"req_id":5,"passthrough":{}}`)
-		 r6:=[]byte(`{"get_account_status":1,"req_id":6,"passthrough":{}}`)
-		 r7:=[]byte(`{"payout_currencies":1}`)
-		 r8:=[]byte(`{"mt5_login_list":1,"req_id":7,"passthrough":{}}`)
-		 r9:=[]byte(`{"transaction":1,"subscribe":1,"req_id":8,"passthrough":{}}`)
-		 r10:=[]byte(`{"landing_company":"ru","req_id":9,"passthrough":{}}`)
-		 r11:=[]byte(`{"payout_currencies":1}`)
-		 r12:= []byte(`{"active_symbols":"brief"}`)
-		 r13:= []byte(`{"forget_all":["ticks","candles"],"req_id":10,"passthrough":{}}`)
-		 r14:= []byte(`{"contracts_for":"frxEURUSD"}`)
-		 r15:= []byte(`{"forget_all":"proposal_open_contract","req_id":11,"passthrough":{}}`)
-		 r16:= []byte(`{"forget_all":"proposal","req_id":12,"passthrough":{}}`)
-		 r17:= []byte(`{"statement":1,"limit":1,"req_id":13,"passthrough":{}}`)
-		 r18:= []byte(`{"ticks_history":"frxEURUSD","style":"ticks","end":"latest","count":20,"subscribe":1,"req_id":14,"passthrough":{}}`)
-		 r19:= []byte(`{"proposal":1,"subscribe":1,"amount":10,"basis":"stake","contract_type":"CALL","currency":"USD","symbol":"frxEURUSD","duration":5,"duration_unit":"t","passthrough":{"form_id":1},"req_id":15}`)
-	     r20:= []byte(`{"proposal":1,"subscribe":1,"amount":10,"basis":"stake","contract_type":"PUT","currency":"USD","symbol":"frxEURUSD","duration":5,"duration_unit":"t","passthrough":{"form_id":1},"req_id":16}`)
+	func() {
+		r1 := []byte(`{"authorize":"a1-aIfqSYsjkdq1NNbg2DzSfwjLLMoNk","req_id":1,"passthrough":{}}`)
+		r2 := []byte(`{"website_status":1,"subscribe":1,"req_id":2,"passthrough":{}}`)
+		r3 := []byte(`{"time":1,"req_id":3,"passthrough":{}}`)
+		r4 := []byte(`{"balance":1,"subscribe":1,"req_id":4,"passthrough":{}}`)
+		r5 := []byte(`{"get_settings":1,"req_id":5,"passthrough":{}}`)
+		r6 := []byte(`{"get_account_status":1,"req_id":6,"passthrough":{}}`)
+		r7 := []byte(`{"payout_currencies":1}`)
+		r8 := []byte(`{"mt5_login_list":1,"req_id":7,"passthrough":{}}`)
+		r9 := []byte(`{"transaction":1,"subscribe":1,"req_id":8,"passthrough":{}}`)
+		r10 := []byte(`{"landing_company":"ru","req_id":9,"passthrough":{}}`)
+		r11 := []byte(`{"payout_currencies":1}`)
+		r12 := []byte(`{"active_symbols":"brief"}`)
+		r13 := []byte(`{"forget_all":["ticks","candles"],"req_id":10,"passthrough":{}}`)
+		r14 := []byte(`{"contracts_for":"frxEURUSD"}`)
+		r15 := []byte(`{"forget_all":"proposal_open_contract","req_id":11,"passthrough":{}}`)
+		r16 := []byte(`{"forget_all":"proposal","req_id":12,"passthrough":{}}`)
+		r17 := []byte(`{"statement":1,"limit":1,"req_id":13,"passthrough":{}}`)
+		r18 := []byte(`{"ticks_history":"frxEURUSD","style":"ticks","end":"latest","count":20,"subscribe":1,"req_id":14,"passthrough":{}}`)
+		r19 := []byte(`{"proposal":1,"subscribe":1,"amount":10,"basis":"stake","contract_type":"CALL","currency":"USD","symbol":"frxEURUSD","duration":5,"duration_unit":"t","passthrough":{"form_id":1},"req_id":15}`)
+		r20 := []byte(`{"proposal":1,"subscribe":1,"amount":10,"basis":"stake","contract_type":"PUT","currency":"USD","symbol":"frxEURUSD","duration":5,"duration_unit":"t","passthrough":{"form_id":1},"req_id":16}`)
 
-		 //rr1, _:=json.Marshal(r1)
+		//rr1, _:=json.Marshal(r1)
 		//rr2, _:=json.Marshal(r2)
 		//rr3, _:=json.Marshal(r3)
 		//rr4, _:=json.Marshal(r4)
-		c.WriteMessage(1,r1)
-		c.WriteMessage(1,r2)
-		c.WriteMessage(1,r3)
-		 c.WriteMessage(1,r4)
-		 c.WriteMessage(1,r5)
-		 c.WriteMessage(1,r6)
-		 c.WriteMessage(1,r7)
-		 c.WriteMessage(1,r8)
-		 c.WriteMessage(1,r9)
-		 c.WriteMessage(1,r10)
-		 c.WriteMessage(1,r11)
-		 c.WriteMessage(1,r12)
-		 c.WriteMessage(1,r13)
-		 c.WriteMessage(1,r14)
-		 c.WriteMessage(1,r15)
-		 c.WriteMessage(1,r16)
-		 c.WriteMessage(1,r17)
-		 c.WriteMessage(1,r18)
-		 c.WriteMessage(1,r19)
-		 c.WriteMessage(1,r20)
+		c.WriteMessage(1, r1)
+		c.WriteMessage(1, r2)
+		c.WriteMessage(1, r3)
+		c.WriteMessage(1, r4)
+		c.WriteMessage(1, r5)
+		c.WriteMessage(1, r6)
+		c.WriteMessage(1, r7)
+		c.WriteMessage(1, r8)
+		c.WriteMessage(1, r9)
+		c.WriteMessage(1, r10)
+		c.WriteMessage(1, r11)
+		c.WriteMessage(1, r12)
+		c.WriteMessage(1, r13)
+		c.WriteMessage(1, r14)
+		c.WriteMessage(1, r15)
+		c.WriteMessage(1, r16)
+		c.WriteMessage(1, r17)
+		c.WriteMessage(1, r18)
+		c.WriteMessage(1, r19)
+		c.WriteMessage(1, r20)
 
-         SignalAnalitic := NewQueue()
-         PoolChat := botApi.NewPool(bot, 60)
-         TestChat := botApi.NewPool(bot, 60)
-         StatisticCheck:= statistic{Bot: bot}
-         var sig Signal
-         var sigTest Signal
+		SignalAnalitic := NewQueue()
+		PoolChat := botApi.NewPool(bot, 60)
+		TestChat := botApi.NewPool(bot, 60)
+		StatisticCheck := statistic{Bot: bot}
+		var sig Signal
+		var sigTest Signal
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				go ConnectBinary(signal, stopsignal,static,testSignal, bot, stor)
+				go ConnectBinary(signal, stopsignal, static, testSignal, bot, stor)
 				fmt.Println("REBOOT")
-				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите "+ botApi.GETSIG)
+				PoolChat.Lock()
+				PoolChat.SendMessage("Рестарт сервиса, для подключения к сигналам введите " + botApi.GETSIG)
+				PoolChat.Unlock()
 				return
 			}
 
 			resp := Resp{}
 			json.Unmarshal(message, &resp)
 			if resp.Tick.Epoch == 0 {
-				TestChat.SendMessage("Торги отключены")
-				PoolChat.SendMessage("Торги отключены")
-				TestChat.Pool = make(map[int]int, 0)
-				PoolChat.Pool = make(map[int]int, 0)
+				continue
 
 			}
 			SignalAnalitic.Add(float64(resp.Tick.Quote))
-			select {
-			case idchat := <- signal:
-				msg:= tgbotapi.NewMessage(int64(idchat), "Вы подписались на сигналы, таймфрейм 1М")
-				bot.Send(msg)
-				PoolChat.AddChat(idchat)
-			case  <-PoolChat.Signal:
-				fmt.Println("TIMER")
-				t:=time.Now().In(GMT)
-				t = t.Round(1*time.Minute)
-				if sig.TimeEnd == 0 {
-					var result bool
-					// Вставляем сигнал
-					result = SignalAnalitic.GetSolving()
-
-					sig = NewSignal(t.Unix(), result,resp.Tick.Quote)
-					sigTest = NewSignal(t.Unix(), result,resp.Tick.Quote)
-
-					t2:= time.Unix(sig.TimeStart, 0).In(GMT)
-					fmt.Println(t2, sig)
-					hour, minute, _:= t2.Clock()
-					h:=strconv.Itoa(hour)
-					if len(h)<2{
-						h = "0"+h
-					}
-					m:=strconv.Itoa(minute)
-					if len(m)<2 {
-						m = "0"+m
-					}
-					text := "EUR/USD/" + sig.Text + "/" +h+":"+m+"GMT"
-					PoolChat.SendMessage(text)
-					TestChat.SendMessage(text)
-				}
-			case idchat := <- stopsignal:
-				fmt.Println(idchat, "STOPSIGNAL")
-				PoolChat.OffChat(idchat)
-				TestChat.OffChat(idchat)
-				msg:= tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите " + botApi.GETSIG)
-				bot.Send(msg)
-			case <-static:
-				StatisticCheck.GetStatistic()
-			case chatID:= <-testSignal:
-				user:=stor.GetTestUser(chatID)
-				if user.UserID == 0 {
-					stor.AddUserTest(chatID)
-				}
-				if len(user.TestEnd)>0 {
-					if user.TestEnd[0] ==[]byte{1}[0] {
-						msg:= tgbotapi.NewMessage(int64(chatID), "Вы уже использовали тестовый доступ")
-						bot.Send(msg)
-						continue
-					}
-				}
-				msg:= tgbotapi.NewMessage(int64(chatID), "Вы подписались на сигналы, таймфрейм 1М, используется тестовый доступ")
-				bot.Send(msg)
-				stor.EndSub(chatID)
-				go func(chatID int) {
-					time.Sleep(60*time.Minute)
-					TestChat.OffChat(chatID)
-					msg:= tgbotapi.NewMessage(int64(chatID), "Тестовый доступ закрыт, чтобы продолжить, получите полный доступ в меню бота")
-					bot.Send(msg)
-				}(chatID)
-				TestChat.AddChat(chatID)
-
-			default:
-
-				continue
-			}
-
 
 			if sig.TimeStart != 0 || sig.TimeEnd != 0 {
 				if sig.TimeStart <= resp.Tick.Epoch {
 					if sig.TimeStart != 0 {
 						sig.Price = resp.Tick.Quote
-						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
-						text :="Старт сигнала, цена:"+f[:7]
+						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						text := "Старт сигнала, цена:" + f[:7]
 						PoolChat.SendMessage(text)
 						sig.TimeStart = 0
 					}
 
 				}
 				if sig.TimeEnd <= resp.Tick.Epoch {
-					if  sig.TimeEnd != 0{
-						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+					if sig.TimeEnd != 0 {
+						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
 						Quote := resp.Tick.Quote
 						text := ""
 						switch {
-						case Quote>sig.Price && sig.Rise:
+						case Quote > sig.Price && sig.Rise:
 							text = "Отработал"
 							StatisticCheck.GoodAdd()
-						case Quote<sig.Price && !sig.Rise:
+						case Quote < sig.Price && !sig.Rise:
 							text = "Отработал"
 							StatisticCheck.GoodAdd()
 						default:
@@ -340,7 +274,7 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 							StatisticCheck.WrongAdd()
 
 						}
-						msg := "Сигнал " + text + ". Цена:" +f[:7]
+						msg := "Сигнал " + text + ". Цена:" + f[:7]
 						PoolChat.SendMessage(msg)
 						sig = Signal{}
 					}
@@ -353,49 +287,48 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 				if sigTest.TimeStart <= resp.Tick.Epoch {
 					if sigTest.TimeStart != 0 {
 						sigTest.Price = resp.Tick.Quote
-						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
-						text :="Старт сигнала, цена:"+f[:7]
+						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						text := "Старт сигнала, цена:" + f[:7]
 						TestChat.SendMessage(text)
 						sigTest.TimeStart = 0
 					}
 
 				}
 				if sigTest.TimeEnd <= resp.Tick.Epoch {
-					if  sigTest.TimeEnd != 0{
-						f:=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
+					if sigTest.TimeEnd != 0 {
+						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
 						Quote := resp.Tick.Quote
 						text := ""
 						switch {
-						case Quote>sigTest.Price && sigTest.Rise:
+						case Quote > sigTest.Price && sigTest.Rise:
 							text = "Отработал"
 
-						case Quote<sigTest.Price && !sigTest.Rise:
+						case Quote < sigTest.Price && !sigTest.Rise:
 							text = "Отработал"
 
 						default:
 							text = "Не отработал"
 
-
 						}
 						rand.Seed(sigTest.TimeEnd)
-						r:= rand.Float64()
-						if text == "Не отработал" && r<0.9{
+						r := rand.Float64()
+						if text == "Не отработал" && r < 0.9 {
 							var price float32
 
 							if sigTest.Rise {
-								price = sigTest.Price+(sigTest.Price - Quote)
+								price = sigTest.Price + (sigTest.Price - Quote)
 							} else {
-								price = sigTest.Price-(Quote - sigTest.Price)
+								price = sigTest.Price - (Quote - sigTest.Price)
 							}
-							f=strconv.FormatFloat(float64(price), 'G', -1, 64 )
+							f = strconv.FormatFloat(float64(price), 'G', -1, 64)
 							text = "Отработал"
-							msg := "Сигнал " + text + ". Цена:" +f[:7]
+							msg := "Сигнал " + text + ". Цена:" + f[:7]
 							TestChat.SendMessage(msg)
 							sigTest = Signal{}
 							continue
 						}
-						f=strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64 )
-						msg := "Сигнал " + text + ". Цена:" +f[:7]
+						f = strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						msg := "Сигнал " + text + ". Цена:" + f[:7]
 						TestChat.SendMessage(msg)
 						sigTest = Signal{}
 					}
@@ -404,26 +337,91 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 			}
 			//____________________________________________________________________
 
-
 			fmt.Println(resp.Tick.Quote, "||", resp.Tick.Epoch, PoolChat, sig)
+			select {
+			case idchat := <-signal:
+				msg := tgbotapi.NewMessage(int64(idchat), "Вы подписались на сигналы, таймфрейм 1М")
+				bot.Send(msg)
+				PoolChat.AddChat(idchat)
+			case <-PoolChat.Signal:
+				fmt.Println("TIMER")
+				t := time.Now().In(GMT)
+				t = t.Round(1 * time.Minute)
+				if sig.TimeEnd == 0 {
+					var result bool
+					// Вставляем сигнал
+					result = SignalAnalitic.GetSolving()
 
+					sig = NewSignal(t.Unix(), result, resp.Tick.Quote)
+					sigTest = NewSignal(t.Unix(), result, resp.Tick.Quote)
 
+					t2 := time.Unix(sig.TimeStart, 0).In(GMT)
+					fmt.Println(t2, sig)
+					hour, minute, _ := t2.Clock()
+					h := strconv.Itoa(hour)
+					if len(h) < 2 {
+						h = "0" + h
+					}
+					m := strconv.Itoa(minute)
+					if len(m) < 2 {
+						m = "0" + m
+					}
+					text := "EUR/USD/" + sig.Text + "/" + h + ":" + m + "GMT"
+					PoolChat.Lock()
+					PoolChat.SendMessage(text)
+					PoolChat.Unlock()
+					TestChat.Lock()
+					TestChat.SendMessage(text)
+					TestChat.Unlock()
 
+				}
+			case idchat := <-stopsignal:
+				fmt.Println(idchat, "STOPSIGNAL")
+				PoolChat.OffChat(idchat)
+				TestChat.OffChat(idchat)
+				msg := tgbotapi.NewMessage(int64(idchat), "Вы отключились от сигналов, для подключения введите "+botApi.GETSIG)
+				bot.Send(msg)
+			case <-static:
+				StatisticCheck.GetStatistic()
+			case chatID := <-testSignal:
+				user := stor.GetTestUser(chatID)
+				if user.UserID == 0 {
+					stor.AddUserTest(chatID)
+				}
+				if len(user.TestEnd) > 0 {
+					if user.TestEnd[0] == []byte{1}[0] {
+						msg := tgbotapi.NewMessage(int64(chatID), "Вы уже использовали тестовый доступ")
+						bot.Send(msg)
+						continue
+					}
+				}
+				msg := tgbotapi.NewMessage(int64(chatID), "Вы подписались на сигналы, таймфрейм 1М, используется тестовый доступ")
+				bot.Send(msg)
+				stor.EndSub(chatID)
+				go func(chatID int) {
+					time.Sleep(60 * time.Minute)
+					TestChat.OffChat(chatID)
+					msg := tgbotapi.NewMessage(int64(chatID), "Тестовый доступ закрыт, чтобы продолжить, получите полный доступ в меню бота")
+					bot.Send(msg)
+				}(chatID)
+				TestChat.AddChat(chatID)
 
+			default:
+
+				continue
+			}
 
 		}
-
 
 	}()
 
 }
 
-
 //{"echo_req":{"passthrough":{},"req_id":3,"time":1},"msg_type":"time","passthrough":{},"req_id":3,"time":1601916930}
 
 type ResponserECHO struct {
 	Echo_req Echo_Req `json:"echo_req"`
-	Msg_type string `json:"msg_type"`
+	Msg_type string   `json:"msg_type"`
 	Passthrough
 	reqid
 	Time int `json:"time"`

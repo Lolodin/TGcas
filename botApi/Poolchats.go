@@ -2,19 +2,21 @@ package botApi
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"sync"
 	"time"
 )
 
 type PoolChats struct {
-	Pool map[int]int
-	Bot *tgbotapi.BotAPI
-	Timer int
+	sync.Mutex
+	Pool   map[int]int
+	Bot    *tgbotapi.BotAPI
+	Timer  int
 	Signal chan struct{}
 }
 
-func(p *PoolChats) SendMessage(msg string) {
+func (p *PoolChats) SendMessage(msg string) {
 	for _, v := range p.Pool {
-		msg:= tgbotapi.NewMessage(int64(v), msg)
+		msg := tgbotapi.NewMessage(int64(v), msg)
 		p.Bot.Send(msg)
 	}
 }
@@ -33,8 +35,8 @@ func NewPool(Bot *tgbotapi.BotAPI, timer int) PoolChats {
 	go func() {
 		for {
 			time.Sleep(time.Duration(p.Timer) * time.Second)
-			p.Signal<- struct{}{}
+			p.Signal <- struct{}{}
 		}
 	}()
-	return  p
+	return p
 }
