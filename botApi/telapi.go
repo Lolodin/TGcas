@@ -24,6 +24,7 @@ const (
 	GETTEST   = "Тестовый доступ"
 	SEND      = "sendall"
 	PATTERN   = `^\w+@\w+\.\w+$`
+	SENDID 	  = "sendid"
 )
 
 type Signal struct {
@@ -108,6 +109,24 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 					bot.Send(msg)
 				}
 			}
+			if command == SENDID {
+					adminCommand :=strings.Split(args, "-")
+				if len(adminCommand) <2{
+					msg := tgbotapi.NewMessage(ADMINCHAT, "Неверные аргументы")
+					bot.Send(msg)
+					continue
+				}
+				userID, err := strconv.Atoi(adminCommand[0])
+				if err != nil {
+					msg := tgbotapi.NewMessage(ADMINCHAT, "Неверные формат ID юзера")
+					bot.Send(msg)
+					continue
+				}
+				text := adminCommand[1]
+				msg:= tgbotapi.NewMessage(int64(userID), text)
+				bot.Send(msg)
+
+			}
 			if command == GETSTATIC {
 				static <- 1
 			}
@@ -152,7 +171,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 
 				usermsg.ReplyMarkup = menu
 				bot.Send(usermsg)
-			} else {
+			} else if command == "no"{
 				userID := arr[0]
 				i, err := strconv.Atoi(userID)
 				if err != nil {
