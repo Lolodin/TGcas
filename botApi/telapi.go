@@ -135,7 +135,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 					bot.Send(msg)
 					continue
 				}
-				if checkTime <= 10 || checkTime >= 22 {
+				if checkTime <= 9 || checkTime >= 22 {
 					msg := tgbotapi.NewMessage(ADMINCHAT, "СУКА НЕ ТРОГАЙ БЛЯТЬ!")
 					bot.Send(msg)
 					continue
@@ -255,7 +255,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 				bot.Send(msg)
 				continue
 			}
-			if checkTime <= 10 || checkTime >= 22 {
+			if checkTime <= 9 || checkTime >= 22 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
@@ -317,7 +317,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 				bot.Send(msg)
 				continue
 			}
-			if checkTime <= 10 || checkTime >= 22 {
+			if checkTime <= 9 || checkTime >= 22 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
@@ -332,7 +332,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 				bot.Send(msg)
 				continue
 			}
-			if checkTime <= 10 || checkTime >= 22 {
+			if checkTime <= 9 || checkTime >= 22 {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сигналы работают с 10:00 до 22:00 по МСК только по рабочим дням")
 				bot.Send(msg)
 				continue
