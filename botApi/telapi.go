@@ -379,7 +379,7 @@ func RunBot(signal, stopsignal, static, testSignal chan int, bot *tgbotapi.BotAP
 
 				}
 				msg2 := tgbotapi.NewMessage(ADMINCHAT, update.Message.Text+" "+str)
-				msg2.ParseMode = tgbotapi.ModeMarkdown
+
 				bot.Send(msg2)
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Почтовый адрес отправлен на проверку")
 
