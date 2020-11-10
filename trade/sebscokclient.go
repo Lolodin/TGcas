@@ -251,6 +251,9 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 					if sig.TimeStart != 0 {
 						sig.Price = resp.Tick.Quote
 						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						if len(f)<7 {
+							f =Error7(f)
+						}
 						text := "Старт сигнала, цена:" + f[:7]
 						PoolChat.SendMessage(text)
 						sig.TimeStart = 0
@@ -260,6 +263,9 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 				if sig.TimeEnd <= resp.Tick.Epoch {
 					if sig.TimeEnd != 0 {
 						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						if len(f)<7 {
+							f =Error7(f)
+						}
 						Quote := resp.Tick.Quote
 						text := ""
 						switch {
@@ -288,6 +294,9 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 					if sigTest.TimeStart != 0 {
 						sigTest.Price = resp.Tick.Quote
 						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						if len(f)<7 {
+							f =Error7(f)
+						}
 						text := "Старт сигнала, цена:" + f[:7]
 						TestChat.SendMessage(text)
 						sigTest.TimeStart = 0
@@ -297,7 +306,10 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 				if sigTest.TimeEnd <= resp.Tick.Epoch {
 					if sigTest.TimeEnd != 0 {
 						f := strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
-						Quote := resp.Tick.Quote
+						if len(f)<7 {
+							f =Error7(f)
+						}
+							Quote := resp.Tick.Quote
 						text := ""
 						switch {
 						case Quote > sigTest.Price && sigTest.Rise:
@@ -321,6 +333,9 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 								price = sigTest.Price - (Quote - sigTest.Price)
 							}
 							f = strconv.FormatFloat(float64(price), 'G', -1, 64)
+							if len(f)<7 {
+								f =Error7(f)
+							}
 							text = "Отработал"
 							msg := "Сигнал " + text + ". Цена:" + f[:7]
 							TestChat.SendMessage(msg)
@@ -328,6 +343,9 @@ func ConnectBinary(signal, stopsignal, static, testSignal chan int, bot *tgbotap
 							continue
 						}
 						f = strconv.FormatFloat(float64(resp.Tick.Quote), 'G', -1, 64)
+						if len(f)<7 {
+							f =Error7(f)
+						}
 						msg := "Сигнал " + text + ". Цена:" + f[:7]
 						TestChat.SendMessage(msg)
 						sigTest = Signal{}
@@ -433,3 +451,11 @@ type Echo_Req struct {
 }
 
 // {"authorize":{"account_list":[{"currency":"USD","is_disabled":0,"is_virtual":1,"landing_company_name":"virtual","loginid":"VRTC3442909"}],"balance":9995,"country":"ru","currency":"USD","email":"golem28@gmail.com","fullname":"  ","is_virtual":1,"landing_company_fullname":"Deriv Limited","landing_company_name":"virtual","local_currencies":{"RUB":{"fractional_digits":2}},"loginid":"VRTC3442909","scopes":["read","admin","trade","payments"],"upgradeable_landing_companies":["svg"],"user_id":7555752},"echo_req":{"authorize":"<not shown>","passthrough":{},"req_id":1},"msg_type":"authorize","passthrough":{},"req_id":1}
+
+func Error7(string2 string) string {
+	string2 =string2+"0"
+	if len(string2)<=7 {
+		return Error7(string2)
+	}
+	return string2
+}
