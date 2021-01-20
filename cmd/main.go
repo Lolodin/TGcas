@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-var token string = "1182001992:AAH-vLkXe7lSkktAqFiY4mZjh2oVb2cSm0A"
+var token string = "000000000000000000000000000000000000000000000000000000000000"
 
 func main() {
 	fmt.Println("BOT RUN")
